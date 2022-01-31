@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">TAJOS Wifi Management</string>
+    <string name="tajos_wifi_customer_management">MONTH</string>
+    <string name="customer_name">customer_name</string>
+    <string name="due_date">Due date:</string>
+    <string name="connected">Connected:</string>
+    <string name="status">Status:</string>
+    <string name="today">TODAY</string>
+    <string name="to_pay">To Pay:</string>
+    <string name="enter_a_number_for_the_due_date">Enter a day for the due date...</string>
+    <string name="save">save</string>
+    <string name="devices">Device(s):</string>
+    <string name="device_s_separate_w_comma">Device(s) - Separate w/ comma</string>
+    <string name="total_amount_to_pay">Total amount to pay</string>
+    <string name="total_person_to_connect">Total person to connect</string>
+    <string name="enter_name">Enter Name...</string>
+    <string name="history">History</string>
+    <string name="device_here">Device here</string>
+</resources>

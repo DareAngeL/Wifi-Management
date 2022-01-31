@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:id="@+id/history_btn"
+            android:background="@drawable/round_drawable"
+            android:foreground="?attr/selectableItemBackground"
+            android:translationY="180dp"
+            android:layout_width="350dp"
+            android:layout_height="wrap_content"
+            tools:ignore="UselessParent"
+            tools:targetApi="m">
+
+            <TextView
+                android:text="@string/history"
+                android:gravity="center"
+                android:padding="8dp"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

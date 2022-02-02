@@ -43,13 +43,19 @@ public class NotificationWorker extends Worker {
         final int monthToday = calendar.get(Calendar.MONTH);
 
         HashMap<String, Object> userWithDueDateInfo = null;
+        boolean isPastDueDate = false;
+
         for (HashMap<String, Object> info : listInfo) {
             final String dueDateStr = Objects.requireNonNull(info.get(DUEDATE_KEY)).toString();
             final String userRegMonthStr = Objects.requireNonNull(info.get(Util.REG_MOS)).toString();
 
             int userRegMonth = Util.isInteger(userRegMonthStr)?Integer.parseInt(userRegMonthStr):(int)Double.parseDouble(userRegMonthStr);
             int userDueDate = Util.isInteger(dueDateStr)?Integer.parseInt(dueDateStr):(int)Double.parseDouble(dueDateStr);
-            if (dayToday == userDueDate && monthToday != userRegMonth) {
+
+            if (dayToday >= userDueDate && monthToday != userRegMonth) {
+                if (dayToday > userDueDate)
+                    isPastDueDate = true;
+
                 userWithDueDateInfo = info;
                 break;
             }
@@ -57,7 +63,7 @@ public class NotificationWorker extends Worker {
         // if there is a dueDate for this day, notify me
         if (userWithDueDateInfo != null) {
             new NotificationService(context)
-                    .BuildNotification(Objects.requireNonNull(userWithDueDateInfo.get(NAME_KEY)).toString(),"Charge them now.")
+                    .BuildNotification(Objects.requireNonNull(userWithDueDateInfo.get(NAME_KEY)).toString(),"Charge them now.", isPastDueDate)
                     .Notify();
         }
 

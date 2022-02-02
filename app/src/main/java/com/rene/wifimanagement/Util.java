@@ -31,6 +31,7 @@ public class Util {
     public static final String STATUS_KEY = "status";
     public static final String DEVICES_KEY = "devices";
     public static final String REG_MOS = "registered_month";
+    public static final String LAST_CHECK_KEY = "last_checked";
 
     public static void disableBroadcastReceiver(Context context) {
 

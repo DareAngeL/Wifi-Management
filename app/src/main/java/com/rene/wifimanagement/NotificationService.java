@@ -17,7 +17,8 @@ public class NotificationService {
     public static final String CHANNEL_NAME = "notification";
     public static final String CHANNEL_DESCRIPTION = "notify the owner";
     public static final String CHANNEL_ID = "170103";
-    private static final String textTitle = "'s DUE DATE TODAY!";
+    private static final String textTitleCurrentDay = "'s DUE DATE TODAY!";
+    private static final String textTitlePastDueDate = " is past on his due date! Remind him/her Now!";
 
     private final Context context;
     private NotificationCompat.Builder builder;
@@ -26,10 +27,10 @@ public class NotificationService {
         context = _context;
     }
 
-    public NotificationService BuildNotification(String userName, String content) {
+    public NotificationService BuildNotification(String userName, String content, boolean isPastDueDate) {
         builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle(userName + textTitle)
+                .setContentTitle(userName + (isPastDueDate? textTitlePastDueDate : textTitleCurrentDay))
                 .setContentText(content)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
 

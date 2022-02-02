@@ -25,6 +25,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -80,7 +81,14 @@ public class UserFormDialog extends Dialog {
         statusLst.add("NOT PAID");
         statusLst.add("NOT FULLY PAID");
 
+        String lastStatus = "";
+        int regMosInt = -1;
         List<String> monthsLst = _Months();
+
+        final Calendar calendar = Calendar.getInstance();
+        final int monthToday = calendar.get(Calendar.MONTH);
+        final int dayToday = calendar.get(Calendar.DAY_OF_MONTH);
+        final int maxDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
 
         status.setAdapter(new ArrayAdapter<>(context, R.layout.spinner_ref, statusLst));
         ((ArrayAdapter)status.getAdapter()).notifyDataSetChanged();
@@ -88,8 +96,16 @@ public class UserFormDialog extends Dialog {
         monthOf.setAdapter(new ArrayAdapter<>(context, R.layout.spinner_ref, monthsLst));
         ((ArrayAdapter)monthOf.getAdapter()).notifyDataSetChanged();
 
-        if (informations != null)
+        if (informations != null) {
+            lastStatus = Objects.requireNonNull(informations.get(Util.STATUS_KEY)).toString();
+            String regMos = Objects.requireNonNull(informations.get(Util.REG_MOS)).toString();
+            regMosInt = Util.isInteger(regMos) ?
+                    Integer.parseInt(regMos) :
+                    (int) Double.parseDouble(regMos);
             _setupInformation();
+        }
+        final String finalLastStatus = lastStatus;
+        final int finalRegMosInt = regMosInt;
 
         _initTextWatchers();
         saveBtn.setOnClickListener(view -> {
@@ -97,7 +113,8 @@ public class UserFormDialog extends Dialog {
                 _showError(name);
                 hasError = true;
             }
-            if (dueDate.getText().toString().isEmpty() || !Util.isNumeric(dueDate.getText().toString())) {
+            int inputDueDate = Integer.parseInt(dueDate.getText().toString());
+            if (dueDate.getText().toString().isEmpty() || !Util.isNumeric(dueDate.getText().toString()) || inputDueDate > maxDays) {
                 _showError(dueDate);
                 hasError = true;
             }
@@ -112,6 +129,33 @@ public class UserFormDialog extends Dialog {
 
             if (hasError)
                 return;
+
+            // automatically update the month and balance if the admin forgot to update it. => Edit Mode
+            if (informations != null) {
+                final int dueDate = Util.isInteger(Objects.requireNonNull(informations.get(Util.DUEDATE_KEY)).toString()) ?
+                        Integer.parseInt(Objects.requireNonNull(informations.get(Util.DUEDATE_KEY)).toString()) :
+                        (int) Double.parseDouble(Objects.requireNonNull(informations.get(Util.DUEDATE_KEY)).toString());
+
+                if ((finalLastStatus.equals("NOT PAID") && status.getSelectedItem().toString().equals("PAID")) ||
+                    (finalLastStatus.equals("NOT FULLY PAID") && status.getSelectedItem().toString().equals("PAID"))) {
+                    if (!toPay.getText().toString().equals("0"))
+                        toPay.setText("0");
+                }
+
+                if (!finalLastStatus.equals(status.getSelectedItem().toString()) &&
+                        Util.StrToNumMonth(monthOf.getSelectedItem().toString()) != monthToday)
+                    monthOf.setSelection(!(dayToday < dueDate)? monthToday : monthToday-1);
+
+                if (finalLastStatus.equals(status.getSelectedItem().toString()) &&
+                        Util.StrToNumMonth(monthOf.getSelectedItem().toString()) != finalRegMosInt)
+                    monthOf.setSelection(finalRegMosInt);
+            }
+            // Add Mode
+            if (informations == null) {
+                if (Util.StrToNumMonth(monthOf.getSelectedItem().toString()) != monthToday) {
+                    monthOf.setSelection(monthToday);
+                }
+            }
 
             listener.OnClick(informations != null, position, name.getText().toString(), dueDate.getText().toString(), connected.getText().toString(), toPay.getText().toString(), status.getSelectedItem().toString(), String.valueOf(Util.StrToNumMonth(monthOf.getSelectedItem().toString())), devices.getText().toString());
             dismiss();

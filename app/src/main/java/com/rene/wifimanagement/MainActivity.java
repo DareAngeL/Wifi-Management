@@ -2,7 +2,6 @@ package com.rene.wifimanagement;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
@@ -53,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private DrawerLayout drawer;
 
     private boolean isListEmpty = true;
+    private int mMosLastChecked = -1;
 
     @Override
     public void onBackPressed() {
@@ -69,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         cache = Util.Cache.Instance(this);
+        //cache.edit().putInt(Util.LAST_CHECK_KEY, 0).apply();
 
         // declaration
         final TextView date = findViewById(R.id.date);
@@ -122,7 +123,17 @@ public class MainActivity extends AppCompatActivity {
         if (listInfos.size() > 0) {
             list.setHasFixedSize(true);
             list.setAdapter(new ListAdapter(listInfos));
-            list.setLayoutManager(new LinearLayoutManager(this));
+            list.setLayoutManager(new LinearLayoutManager(this) {
+                @Override
+                public void onLayoutCompleted(RecyclerView.State state) {
+                    super.onLayoutCompleted(state);
+                    // always update the cache of listInfos every after layout complete of recyclerview
+                    cache.edit().putString(Util.cacheKey, new Gson().toJson(listInfos)).apply();
+                    // update the month to when was the app was last checked or opened.
+                    if (mMosLastChecked != -1)
+                        cache.edit().putInt(Util.LAST_CHECK_KEY, mMosLastChecked).apply();
+                }
+            });
             Objects.requireNonNull(list.getAdapter()).notifyDataSetChanged();
             isListEmpty = false;
         }
@@ -142,6 +153,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             // otherwise, its for adding new user.
+            list.setEnabled(false);
             new UserFormDialog(this, null, 0, (isFromEdit, _position, _name, _dueDate, _connected, _toPay, _status, _monthOf, _devices) -> {
                 // on save button clicked!
                 if (! isFromEdit)
@@ -224,11 +236,6 @@ public class MainActivity extends AppCompatActivity {
         return strLst;
     }
 
-    /* * * * * * * * * * * * * * * * * * * * * * * * *
-     * Converts the integer value of MONTH to a
-     * String value.
-     * * * * * * * * * * * * * * * * * * * * * * * *  */
-
     public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         private final List<HashMap<String, Object>> data;
         private final int PAID_COLOR_INDICATOR = Color.parseColor("#FF4CAF50"); // green
@@ -260,32 +267,87 @@ public class MainActivity extends AppCompatActivity {
             final TextView connected = view.findViewById(R.id.connected);
             final TextView toPay = view.findViewById(R.id.to_pay);
             final TextView status = view.findViewById(R.id.status);
+            final TextView dueDateTxt = view.findViewById(R.id.due_dateTxt);
+            final TextView connectedTxt = view.findViewById(R.id.connectedTxt);
+            final TextView toPayTxt = view.findViewById(R.id.to_payTxt);
+            final TextView statusTxt = view.findViewById(R.id.statusTxt);
+            final TextView devicesTxt = view.findViewById(R.id.devicesTxt);
             final Spinner devices = view.findViewById(R.id.devices);
             final ImageButton delete = view.findViewById(R.id.delete);
             final ImageButton editBtn = view.findViewById(R.id.edit_btn);
-
-            customerName.setText(Objects.requireNonNull(listInfos.get(position).get(Util.NAME_KEY)).toString());
-            dueDate.setText(Objects.requireNonNull(listInfos.get(position).get(Util.DUEDATE_KEY)).toString() + " of " + Util.getStrMonth(Util.StringToInteger(Objects.requireNonNull(listInfos.get(position).get(Util.REG_MOS)).toString()) + 1));
-            connected.setText(Objects.requireNonNull(listInfos.get(position).get(Util.CONNECTED_KEY)).toString() + "x Person(s)");
-            toPay.setText(Objects.requireNonNull(listInfos.get(position).get(Util.TOPAY_KEY)).toString() + " PHP");
-            status.setText(Objects.requireNonNull(listInfos.get(position).get(Util.STATUS_KEY)).toString());
 
             String statusStr = Objects.requireNonNull(listInfos.get(position).get(Util.STATUS_KEY)).toString();
             String connectedStr = Objects.requireNonNull(listInfos.get(position).get(Util.CONNECTED_KEY)).toString();
             String toPayStr = Objects.requireNonNull(listInfos.get(position).get(Util.TOPAY_KEY)).toString();
             String dueDateStr = Objects.requireNonNull(listInfos.get(position).get(Util.DUEDATE_KEY)).toString();
             String registeredMonthStr = Objects.requireNonNull(listInfos.get(position).get(Util.REG_MOS)).toString();
+
+            final int dueDateInt = Util.isInteger(dueDateStr) ? Integer.parseInt(dueDateStr) : (int) Double.parseDouble(dueDateStr);
+            final int regMos = Util.isInteger(registeredMonthStr) ?
+                    Integer.parseInt(registeredMonthStr) :
+                    (int) Double.parseDouble(registeredMonthStr);
+
+            customerName.setText(Objects.requireNonNull(listInfos.get(position).get(Util.NAME_KEY)).toString());
+
+            //noinspection MagicConstant
+            if (regMos == calendar.get(Calendar.MONTH)) {
+                dueDate.setText(Objects.requireNonNull(listInfos.get(position).get(Util.DUEDATE_KEY)) + " of " + Util.getStrMonth(Util.StringToInteger(Objects.requireNonNull(listInfos.get(position).get(Util.REG_MOS)).toString()) + 1));
+            } else {
+                dueDate.setText(Objects.requireNonNull(listInfos.get(position).get(Util.DUEDATE_KEY)) + " of " +
+                        Util.getStrMonth(calendar.get(Calendar.DAY_OF_MONTH)>dueDateInt?calendar.get(Calendar.MONTH)+1:calendar.get(Calendar.MONTH)));
+            }
+
+            connected.setText(Objects.requireNonNull(listInfos.get(position).get(Util.CONNECTED_KEY)) + "x Person(s)");
+            toPay.setText((Util.isInteger(toPayStr) ? Integer.parseInt(toPayStr) : (int) Double.parseDouble(toPayStr)) + " PHP");
+            status.setText(Objects.requireNonNull(listInfos.get(position).get(Util.STATUS_KEY)).toString());
+
             switch (statusStr) {
                 case "PAID":
                     status.setTextColor(PAID_COLOR_INDICATOR);
-                    _recheckUserStatus(status, toPay, connectedStr, toPayStr, dueDateStr, registeredMonthStr, position);
+                    _recheckUserStatus(status, toPay, dueDate, connectedStr, toPayStr, dueDateStr, registeredMonthStr, position);
                     break;
                 case "NOT PAID":
                     status.setTextColor(NOT_PAID_COLOR_INDICATOR);
+                    // updates the amount balance to pay
+                    final int balanceAmnt = Util.isInteger(toPayStr) ? Integer.parseInt(toPayStr) : (int) Double.parseDouble(toPayStr);
+                    final int connectedInt = Util.isInteger(connectedStr) ?
+                            Integer.parseInt(connectedStr) :
+                            (int) Double.parseDouble(connectedStr);
+                    final int mosLastChecked = cache.getInt(Util.LAST_CHECK_KEY, -1);
+                    final int mosToday = calendar.get(Calendar.MONTH);
+                    final int dayToday = calendar.get(Calendar.DAY_OF_MONTH);
+
+                    if (mosToday == regMos)
+                        break;
+
+                    if (mosLastChecked == -1)
+                        break;
+
+                    int mosDelayed = mosToday < regMos ?
+                            Math.abs((mosToday-regMos)+12) :
+                            mosToday - regMos;
+
+                    if (mosDelayed != 0) {
+                        dueDate.setText(dueDate.getText().toString() +
+                                " (" + (calendar.get(Calendar.DAY_OF_MONTH)>=dueDateInt?mosDelayed:mosDelayed-1) + " month(s) not paid)");
+                    }
+
+                    if (mosToday > mosLastChecked || mosLastChecked > mosToday) {
+                        if (dayToday >= dueDateInt) {
+                            mMosLastChecked = mosToday;
+
+                            int diff = mosToday < mosLastChecked ? Math.abs((mosToday-mosLastChecked)+12):mosToday - mosLastChecked;
+                            int newBalance = diff * (Util.PRICE * connectedInt) + balanceAmnt;
+
+                            toPay.setText(newBalance + " PHP");
+                            listInfos.get(position).put(Util.TOPAY_KEY, newBalance);
+                        }
+                    }
+
                     break;
                 case "NOT FULLY PAID":
                     status.setTextColor(NOT_FULLY_PAID_COLOR_INDICATOR);
-                    _recheckUserStatus(status, toPay, connectedStr, toPayStr, dueDateStr, registeredMonthStr, position);
+                    _recheckUserStatus(status, toPay, dueDate, connectedStr, toPayStr, dueDateStr, registeredMonthStr, position);
                     break;
                 default:
                     status.setText("UNKNOWN");
@@ -303,6 +365,7 @@ public class MainActivity extends AppCompatActivity {
                 root.setCardBackgroundColor(ContextCompat.getColor(getApplicationContext(), R.color.white));
             }
 
+            // # region: Listeners
             root.setOnLongClickListener(view1 -> {
                 delete.setVisibility(View.VISIBLE);
                 editBtn.setVisibility(View.VISIBLE);
@@ -364,6 +427,23 @@ public class MainActivity extends AppCompatActivity {
                     notifyItemRangeChanged(_position, getItemCount() - _position);
                 }
             }).show());
+
+            connectedTxt.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+                // onGlobalLayout
+                int connectedTxtWidth = connectedTxt.getMeasuredWidth();
+                dueDateTxt.getLayoutParams().width = dueDateTxt.getMeasuredWidth() + (connectedTxtWidth-dueDateTxt.getMeasuredWidth());
+                dueDateTxt.requestLayout();
+
+                toPayTxt.getLayoutParams().width = toPayTxt.getMeasuredWidth() + (connectedTxtWidth-toPayTxt.getMeasuredWidth());
+                toPayTxt.requestLayout();
+
+                statusTxt.getLayoutParams().width = statusTxt.getMeasuredWidth() + (connectedTxtWidth-statusTxt.getMeasuredWidth());
+                statusTxt.requestLayout();
+
+                devicesTxt.getLayoutParams().width = devicesTxt.getMeasuredWidth() + (connectedTxtWidth-devicesTxt.getMeasuredWidth());
+                devicesTxt.requestLayout();
+            });
+            // # end-region: Listeners
         }
 
         @Override
@@ -379,7 +459,7 @@ public class MainActivity extends AppCompatActivity {
 
         @SuppressWarnings("MagicConstant")
         @SuppressLint("SetTextI18n")
-        private void _recheckUserStatus(TextView view, TextView toPayTextView, @NonNull String connectedTxt, @NonNull String toPayTxt, String dueDateStr, String registeredMonthStr, int _position) {
+        private void _recheckUserStatus(TextView view, TextView toPayTextView, TextView dueDateTxt, @NonNull String connectedTxt, @NonNull String toPayTxt, String dueDateStr, String registeredMonthStr, int _position) {
             final int dueDate = Util.isInteger(dueDateStr) ? Integer.parseInt(dueDateStr) : (int) Double.parseDouble(dueDateStr);
             final int connected = Util.isInteger(connectedTxt) ?
                     Integer.parseInt(connectedTxt) :
@@ -396,15 +476,41 @@ public class MainActivity extends AppCompatActivity {
                 registeredMonth = (int) Double.parseDouble(registeredMonthStr);
 
             if (calendar.get(Calendar.MONTH) != registeredMonth) {
-                if (calendar.get(Calendar.DAY_OF_MONTH) >= dueDate) {
-                    final String newBalance = String.valueOf(Util.PRICE * connected + balanceAmnt);
-                    toPayTextView.setText(newBalance);
-                    view.setText("NOT PAID");
-                    view.setTextColor(NOT_PAID_COLOR_INDICATOR);
-                    listInfos.get(_position).put(Util.STATUS_KEY, "NOT PAID");
-                    listInfos.get(_position).put(Util.TOPAY_KEY, newBalance);
-                    cache.edit().putString(Util.cacheKey, new Gson().toJson(listInfos)).apply();
+                mMosLastChecked = calendar.get(Calendar.MONTH);
+                /* subt -> used to substract the var. "diff"
+                * @Values:
+                *   1 ==> if the current day is less than the dueDate(day) of the client,
+                *         we need to subtract it with 1 so the program wont add another bill before the next dueDate
+                *   0 ==> if the current day is bigger or equal than the dueDate(day) of the client,
+                *         we dont need need to subtract the diff so it can add another bill bcuz its his/her due or past his/her due.
+                */
+                final int subt = calendar.get(Calendar.DAY_OF_MONTH) >= dueDate ? 0 : 1;
+                // diff -> the difference between the num of current month to the num of month, of when was the last time the user paid the bill.
+                int diff = calendar.get(Calendar.MONTH) < registeredMonth ? Math.abs((calendar.get(Calendar.MONTH)-registeredMonth)+12):calendar.get(Calendar.MONTH) - registeredMonth;
+                // calculate the months that was delayed or the months that was not paid.
+                int mosDelayed = calendar.get(Calendar.MONTH) < registeredMonth ?
+                        Math.abs((calendar.get(Calendar.MONTH)-registeredMonth)+12) :
+                        calendar.get(Calendar.MONTH) - registeredMonth;
+
+                // set the new balance and display it on the UI
+                final int newBalanceInt = (diff - subt) * (Util.PRICE * connected) + balanceAmnt;
+                final String newBalanceStr = String.valueOf(newBalanceInt);
+                // but if there is no new balance then just return it.
+                if (newBalanceInt == balanceAmnt)
+                    return;
+
+                // diplays how many months the client delayed his/her bills
+                if (mosDelayed != 0) {
+                    dueDateTxt.setText(dueDateTxt.getText().toString() +
+                            " (" + (calendar.get(Calendar.DAY_OF_MONTH)>=dueDate?mosDelayed:mosDelayed-1) + " month(s) not paid)");
                 }
+
+                toPayTextView.setText(newBalanceStr + " PHP");
+                view.setText("NOT PAID");
+                view.setTextColor(NOT_PAID_COLOR_INDICATOR);
+                listInfos.get(_position).put(Util.STATUS_KEY, "NOT PAID");
+                listInfos.get(_position).put(Util.TOPAY_KEY, newBalanceStr);
+                cache.edit().putString(Util.cacheKey, new Gson().toJson(listInfos)).apply();
             }
         }
     }

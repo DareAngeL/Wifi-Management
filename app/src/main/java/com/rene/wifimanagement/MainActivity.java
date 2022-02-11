@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private DrawerLayout drawer;
 
     private boolean isListEmpty = true;
+    private boolean isFromAddingCust = false;
     private int mMosLastChecked = -1;
 
     @Override
@@ -122,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
         // if there is any data from cache load it.
         if (listInfos.size() > 0) {
             list.setHasFixedSize(true);
-            list.setAdapter(new ListAdapter(listInfos));
+            list.setAdapter(new ListAdapter(listInfos, isFromAddingCust));
             list.setLayoutManager(new LinearLayoutManager(this) {
                 @Override
                 public void onLayoutCompleted(RecyclerView.State state) {
@@ -163,8 +164,14 @@ public class MainActivity extends AppCompatActivity {
                     Objects.requireNonNull(list.getAdapter()).notifyItemInserted(listInfos.size() - 1);
                 else {
                     list.setHasFixedSize(true);
-                    list.setAdapter(new ListAdapter(listInfos));
-                    list.setLayoutManager(new LinearLayoutManager(this));
+                    list.setAdapter(new ListAdapter(listInfos, isFromAddingCust=true));
+                    list.setLayoutManager(new LinearLayoutManager(this) {
+                        @Override
+                        public void onLayoutCompleted(RecyclerView.State state) {
+                            super.onLayoutCompleted(state);
+                            isFromAddingCust = false;
+                        }
+                    });
                     Objects.requireNonNull(list.getAdapter()).notifyDataSetChanged();
                     isListEmpty = false;
                 }
@@ -238,12 +245,14 @@ public class MainActivity extends AppCompatActivity {
 
     public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         private final List<HashMap<String, Object>> data;
+        private boolean isFromAddingCustomer;
         private final int PAID_COLOR_INDICATOR = Color.parseColor("#FF4CAF50"); // green
         private final int NOT_PAID_COLOR_INDICATOR = Color.parseColor("#FFFF0000"); // red
         private final int NOT_FULLY_PAID_COLOR_INDICATOR = Color.parseColor("#FFC39200"); // yellow
 
-        public ListAdapter(List<HashMap<String, Object>> _data) {
+        public ListAdapter(List<HashMap<String, Object>> _data, boolean _isFromAddingCustomer) {
             data = _data;
+            isFromAddingCustomer = _isFromAddingCustomer;
         }
 
         @NonNull
@@ -304,10 +313,18 @@ public class MainActivity extends AppCompatActivity {
             switch (statusStr) {
                 case "PAID":
                     status.setTextColor(PAID_COLOR_INDICATOR);
+                    // if from adding customer infos, dont need to recheck the status. break it;
+                    if (isFromAddingCustomer)
+                        break;
+
                     _recheckUserStatus(status, toPay, dueDate, connectedStr, toPayStr, dueDateStr, registeredMonthStr, position);
                     break;
                 case "NOT PAID":
                     status.setTextColor(NOT_PAID_COLOR_INDICATOR);
+                    // if from adding customer infos, dont need to recheck the status. break it;
+                    if (isFromAddingCustomer)
+                        break;
+
                     // updates the amount balance to pay
                     final int balanceAmnt = Util.isInteger(toPayStr) ? Integer.parseInt(toPayStr) : (int) Double.parseDouble(toPayStr);
                     final int connectedInt = Util.isInteger(connectedStr) ?
@@ -347,6 +364,10 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case "NOT FULLY PAID":
                     status.setTextColor(NOT_FULLY_PAID_COLOR_INDICATOR);
+                    // if from adding customer infos, dont need to recheck the status. break it;
+                    if (isFromAddingCustomer)
+                        break;
+
                     _recheckUserStatus(status, toPay, dueDate, connectedStr, toPayStr, dueDateStr, registeredMonthStr, position);
                     break;
                 default:

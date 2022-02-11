@@ -151,11 +151,11 @@ public class UserFormDialog extends Dialog {
                     monthOf.setSelection(finalRegMosInt);
             }
             // Add Mode
-            if (informations == null) {
+            /*if (informations == null) {
                 if (Util.StrToNumMonth(monthOf.getSelectedItem().toString()) != monthToday) {
                     monthOf.setSelection(monthToday);
                 }
-            }
+            } */
 
             listener.OnClick(informations != null, position, name.getText().toString(), dueDate.getText().toString(), connected.getText().toString(), toPay.getText().toString(), status.getSelectedItem().toString(), String.valueOf(Util.StrToNumMonth(monthOf.getSelectedItem().toString())), devices.getText().toString());
             dismiss();

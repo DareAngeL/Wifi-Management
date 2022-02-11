@@ -245,7 +245,7 @@ public class MainActivity extends AppCompatActivity {
 
     public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         private final List<HashMap<String, Object>> data;
-        private boolean isFromAddingCustomer;
+        private final boolean isFromAddingCustomer;
         private final int PAID_COLOR_INDICATOR = Color.parseColor("#FF4CAF50"); // green
         private final int NOT_PAID_COLOR_INDICATOR = Color.parseColor("#FFFF0000"); // red
         private final int NOT_FULLY_PAID_COLOR_INDICATOR = Color.parseColor("#FFC39200"); // yellow

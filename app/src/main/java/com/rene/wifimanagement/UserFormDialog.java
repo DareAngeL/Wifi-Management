@@ -4,8 +4,10 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -151,11 +153,25 @@ public class UserFormDialog extends Dialog {
                     monthOf.setSelection(finalRegMosInt);
             }
             // Add Mode
-            /*if (informations == null) {
+            boolean isShowingWarning = false;
+            if (informations == null) {
                 if (Util.StrToNumMonth(monthOf.getSelectedItem().toString()) != monthToday) {
-                    monthOf.setSelection(monthToday);
+                    isShowingWarning = true;
+                    final AlertDialog.Builder alertWarning = new AlertDialog.Builder(context).setTitle("WARNING!");
+                            alertWarning.setMessage("Your selected month is not the same as the month today, Are you sure to continue?");
+                            alertWarning.setNegativeButton("Cancel", (dialogInterface, i) -> {});
+                            alertWarning.setPositiveButton("Continue", (dialogInterface, i) -> {
+                                // onClick
+                                listener.OnClick(false, position, name.getText().toString(), dueDate.getText().toString(), connected.getText().toString(), toPay.getText().toString(), status.getSelectedItem().toString(), String.valueOf(Util.StrToNumMonth(monthOf.getSelectedItem().toString())), devices.getText().toString());
+                                dismiss();
+                            });
+                    alertWarning.setCancelable(false);
+                    alertWarning.show();
                 }
-            } */
+            }
+
+            if (isShowingWarning)
+                return;
 
             listener.OnClick(informations != null, position, name.getText().toString(), dueDate.getText().toString(), connected.getText().toString(), toPay.getText().toString(), status.getSelectedItem().toString(), String.valueOf(Util.StrToNumMonth(monthOf.getSelectedItem().toString())), devices.getText().toString());
             dismiss();

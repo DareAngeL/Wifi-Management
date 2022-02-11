@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TAJOS Wifi Management</string>
+    <string name="app_name">DEBUG Wifi Management</string>
     <string name="tajos_wifi_customer_management">MONTH</string>
     <string name="customer_name">customer_name</string>
     <string name="due_date">Due date:</string>
